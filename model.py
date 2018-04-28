@@ -13,7 +13,7 @@ class DeepJ(nn.Module):
         self.latent_size = latent_size
         self.embd = nn.Embedding(NUM_ACTIONS, input_size)
         self.encoder = EncoderRNN(input_size, encoder_size, latent_size, 4)
-        self.decoder = DecoderRNN(self.embd, input_size, latent_size, decoder_size, NUM_ACTIONS, 4)
+        self.decoder = DecoderRNN(self.embd, input_size, latent_size, decoder_size, NUM_ACTIONS, 2)
 
     def forward(self, x, hidden=None):
         batch_size = x.size(0)
@@ -65,27 +65,40 @@ class DecoderRNN(nn.Module):
         self.num_layers = num_layers
 
         self.latent_projection = nn.Linear(latent_size, hidden_size * num_layers)
-        self.rnn = nn.GRU(input_size, hidden_size, num_layers, batch_first=True)
+        self.decoder1 = nn.GRU(1, hidden_size, num_layers, batch_first=True)
+        self.decoder2 = nn.GRU(input_size, hidden_size, 1, batch_first=True)
         
         # Tie output embedding with input embd weights to improve regularization
         # https://arxiv.org/abs/1608.05859 https://arxiv.org/abs/1611.01462
         self.decoder = nn.Linear(hidden_size, output_size)
         self.decoder.weight = embd.weight
 
-        self.dropout = nn.Dropout(0.5)
+        # self.dropout = nn.Dropout(0.5)
 
-    def forward(self, x, latent=None, hidden=None):
+    def forward(self, inputs, latent=None, hidden=None):
+        batch_size, seq_len, num_featutes = inputs.size()
         assert (latent is None and hidden is not None) or (hidden is None and latent is not None)
         # Project the latent vector to a size consumable by the GRU's memory
         if hidden is None:
             latent = self.latent_projection(latent)
             latent = latent.view(-1, self.num_layers, self.hidden_size)
             latent = latent.permute(1, 0, 2).contiguous()
-            hidden = latent
+            hidden = (latent, None)
 
-        # Auto-regressive input dropout to encourage the use of global hidden state.
-        x = self.dropout(x)
+        branch_factor = 16
+        assert seq_len % branch_factor == 0
+        
+        h1, h2 = hidden
+        length_input = Variable(torch.zeros(batch_size, seq_len // branch_factor, 1))
+        length_input = length_input.type(type(inputs.data))
 
-        x, hidden = self.rnn(x, hidden)
+        if length_input.is_cuda:
+            length_input = length_input.cuda()
+
+        coarse_features, h1 = self.decoder1(length_input, h1)
+        coarse_features = coarse_features.contiguous().view(-1, self.hidden_size)
+
+        inputs = inputs.contiguous().view(-1, branch_factor, num_featutes)
+        x, hidden = self.decoder2(inputs, coarse_features.unsqueeze(0))
         x = self.decoder(x)
-        return x, hidden
+        return x, (h1, h2)
