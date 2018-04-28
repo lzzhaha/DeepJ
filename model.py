@@ -63,11 +63,13 @@ class DecoderRNN(nn.Module):
         super().__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
+        self.branch_factor = 16
 
         self.latent_projection = nn.Linear(latent_size, hidden_size * num_layers)
         self.decoder1 = nn.GRU(1, hidden_size, num_layers, batch_first=True)
         self.decoder2 = nn.GRU(input_size, hidden_size, 1, batch_first=True)
         
+        # TODO: Rename this
         # Tie output embedding with input embd weights to improve regularization
         # https://arxiv.org/abs/1608.05859 https://arxiv.org/abs/1611.01462
         self.decoder = nn.Linear(hidden_size, output_size)
@@ -75,30 +77,56 @@ class DecoderRNN(nn.Module):
 
         # self.dropout = nn.Dropout(0.5)
 
+    def project_latent(self, latent):
+        latent = self.latent_projection(latent)
+        latent = latent.view(-1, self.num_layers, self.hidden_size)
+        latent = latent.permute(1, 0, 2).contiguous()
+        return latent
+
     def forward(self, inputs, latent=None, hidden=None):
-        batch_size, seq_len, num_featutes = inputs.size()
+        batch_size, seq_len, num_features = inputs.size()
         assert (latent is None and hidden is not None) or (hidden is None and latent is not None)
-        # Project the latent vector to a size consumable by the GRU's memory
-        if hidden is None:
-            latent = self.latent_projection(latent)
-            latent = latent.view(-1, self.num_layers, self.hidden_size)
-            latent = latent.permute(1, 0, 2).contiguous()
-            hidden = (latent, None)
 
-        branch_factor = 16
-        assert seq_len % branch_factor == 0
-        
-        h1, h2 = hidden
-        length_input = Variable(torch.zeros(batch_size, seq_len // branch_factor, 1))
-        length_input = length_input.type(type(inputs.data))
+        if seq_len == 1:
+            # Project the latent vector to a size consumable by the GRU's memory
+            if hidden is None:
+                hidden = (0, self.project_latent(latent), None)
+            
+            index, h1, h2 = hidden
 
-        if length_input.is_cuda:
-            length_input = length_input.cuda()
+            if index == 0:
+                # A dummy tensor to feed zeros into the first GRU input
+                length_input = Variable(torch.zeros(batch_size, 1, 1))
+                length_input = length_input.type(type(inputs.data))
 
-        coarse_features, h1 = self.decoder1(length_input, h1)
-        coarse_features = coarse_features.contiguous().view(-1, self.hidden_size)
+                if length_input.is_cuda:
+                    length_input = length_input.cuda()
 
-        inputs = inputs.contiguous().view(-1, branch_factor, num_featutes)
-        x, hidden = self.decoder2(inputs, coarse_features.unsqueeze(0))
-        x = self.decoder(x)
-        return x, (h1, h2)
+                coarse_features, h1 = self.decoder1(length_input, h1)
+                h2 = coarse_features.unsqueeze(0)
+
+            x, h2 = self.decoder2(inputs, h2)
+            x = self.decoder(x)
+            return x, ((index + 1) % self.branch_factor, h1, h2)
+        else:
+            # Project the latent vector to a size consumable by the GRU's memory
+            if hidden is None:
+                hidden = (self.project_latent(latent), None)
+
+            assert seq_len % self.branch_factor == 0
+            
+            h1, h2 = hidden
+            # A dummy tensor to feed zeros into the first GRU input
+            length_input = Variable(torch.zeros(batch_size, seq_len // self.branch_factor, 1))
+            length_input = length_input.type(type(inputs.data))
+
+            if length_input.is_cuda:
+                length_input = length_input.cuda()
+
+            coarse_features, h1 = self.decoder1(length_input, h1)
+            coarse_features = coarse_features.contiguous().view(-1, self.hidden_size)
+
+            inputs = inputs.contiguous().view(-1, self.branch_factor, num_features)
+            x, h2 = self.decoder2(inputs, coarse_features.unsqueeze(0))
+            x = self.decoder(x)
+            return x, (h1, h2)
