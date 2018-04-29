@@ -7,13 +7,13 @@ from util import *
 import numpy as np
 
 class DeepJ(nn.Module):
-    def __init__(self, input_size=512, encoder_size=512, decoder_size=512, latent_size=512):
+    def __init__(self, input_size=512, encoder_size=512, decoder_size=1024, latent_size=512):
         super().__init__()
         self.input_size = input_size
         self.latent_size = latent_size
         self.embd = nn.Embedding(NUM_ACTIONS, input_size)
         self.encoder = EncoderRNN(input_size, encoder_size, latent_size, 4)
-        self.decoder = DecoderRNN(self.embd, input_size, latent_size, decoder_size, NUM_ACTIONS, 2)
+        self.decoder = DecoderRNN(self.embd, input_size, latent_size, decoder_size, NUM_ACTIONS, 1)
 
     def forward(self, x, hidden=None):
         batch_size = x.size(0)
@@ -63,17 +63,16 @@ class DecoderRNN(nn.Module):
         super().__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        self.branch_factor = 16
+        self.branch_factor = 64
 
         self.latent_projection = nn.Linear(latent_size, hidden_size * num_layers)
         self.decoder1 = nn.GRU(1, hidden_size, num_layers, batch_first=True)
         self.decoder2 = nn.GRU(input_size, hidden_size, 1, batch_first=True)
         
-        # TODO: Rename this
         # Tie output embedding with input embd weights to improve regularization
         # https://arxiv.org/abs/1608.05859 https://arxiv.org/abs/1611.01462
-        self.decoder = nn.Linear(hidden_size, output_size)
-        self.decoder.weight = embd.weight
+        self.output = nn.Linear(hidden_size, output_size)
+        # self.output.weight = embd.weight
 
         # self.dropout = nn.Dropout(0.5)
 
@@ -102,11 +101,10 @@ class DecoderRNN(nn.Module):
                 if length_input.is_cuda:
                     length_input = length_input.cuda()
 
-                coarse_features, h1 = self.decoder1(length_input, h1)
-                h2 = coarse_features.unsqueeze(0)
-
+                h2, h1 = self.decoder1(length_input, h1)
+            
             x, h2 = self.decoder2(inputs, h2)
-            x = self.decoder(x)
+            x = self.output(x)
             return x, ((index + 1) % self.branch_factor, h1, h2)
         else:
             # Project the latent vector to a size consumable by the GRU's memory
@@ -128,5 +126,6 @@ class DecoderRNN(nn.Module):
 
             inputs = inputs.contiguous().view(-1, self.branch_factor, num_features)
             x, h2 = self.decoder2(inputs, coarse_features.unsqueeze(0))
-            x = self.decoder(x)
+            x = x.contiguous().view(batch_size, seq_len, -1)
+            x = self.output(x)
             return x, (h1, h2)
