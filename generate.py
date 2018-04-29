@@ -36,7 +36,7 @@ class MusicGenerator():
             z = Variable(torch.randn(1, self.model.latent_size), volatile=True)
         memory = None
         # Generate starting first token. Input for decoder.
-        x = Variable(torch.LongTensor([[0]]), volatile=True)
+        x = Variable(torch.LongTensor([[EOS]]), volatile=True)
         
         for _ in r:
             logits, memory = self.model.decoder(self.model.embd(x), latent=z, hidden=memory)

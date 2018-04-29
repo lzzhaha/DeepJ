@@ -31,6 +31,7 @@ def load(styles=STYLES):
                 # Pad the sequence by an empty event
                 seq = load_midi(f)
                 if len(seq) >= SEQ_LEN:
+                    seq = np.concatenate(([EOS], seq, [EOS]))
                     style_seq.append(torch.from_numpy(seq).long())
                     seq_len_sum += len(seq)
                 else:
