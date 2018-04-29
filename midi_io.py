@@ -120,6 +120,9 @@ def midi_to_seq(midi_file, track):
 
         events.append(NOTE_ON_OFFSET + msg.note)
 
+    # Add EOS token to start and end of sequence
+    events = [EOS] + events + [EOS]
+
     return np.array(events)
 
 def load_midi(fname):
