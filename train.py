@@ -54,11 +54,11 @@ def train(args, model, train_batcher, train_len, val_batcher, val_len, optimizer
             
             for _ in t:
                 data = train_batcher()
-                metrics = train_step(model, data, optimizer)
+                metrics = train_step(model, data, optimizer, total_step)
 
                 total_metrics += metrics
                 avg_metrics = total_metrics / step
-                t.set_postfix(ce=avg_metrics[0], kl=avg_metrics[1], loss=sum(avg_metrics))
+                t.set_postfix(ce=avg_metrics[0], kl=avg_metrics[1], kl_loss=avg_metrics[2], loss=sum(avg_metrics))
 
                 step += 1
                 total_step += 1
@@ -74,10 +74,10 @@ def train(args, model, train_batcher, train_len, val_batcher, val_len, optimizer
 
             for _ in t:
                 data = val_batcher()
-                metrics = val_step(model, data)
+                metrics = val_step(model, data, total_step)
                 total_metrics += metrics
                 avg_metrics = total_metrics / step
-                t.set_postfix(ce=avg_metrics[0], kl=avg_metrics[1], loss=sum(avg_metrics))
+                t.set_postfix(ce=avg_metrics[0], kl=avg_metrics[1], kl_loss=avg_metrics[2], loss=sum(avg_metrics))
 
                 step += 1
             
@@ -93,13 +93,13 @@ def train(args, model, train_batcher, train_len, val_batcher, val_len, optimizer
 
         epoch += 1
 
-def train_step(model, data, optimizer):
+def train_step(model, data, optimizer, total_step):
     """
     Trains the model on a single batch of sequence.
     """
     model.train()
 
-    loss, metrics = compute_loss(model, data)
+    loss, metrics = compute_loss(model, data, total_step)
     
     # Scale the loss
     loss = loss * SCALE_FACTOR
@@ -124,11 +124,11 @@ def train_step(model, data, optimizer):
     copy_in_params(model, param_copy)
     return metrics
 
-def val_step(model, data):
+def val_step(model, data, total_step):
     model.eval()
-    return compute_loss(model, data, volatile=True)[1]
+    return compute_loss(model, data, total_step, volatile=True)[1]
 
-def compute_loss(model, data, volatile=False):
+def compute_loss(model, data, total_step, volatile=False):
     """
     Trains the model on a single batch of sequence.
     """
@@ -145,12 +145,21 @@ def compute_loss(model, data, volatile=False):
     # Otherwise, it will result in 0 gradient.
     # https://github.com/timbmg/Sentence-VAE/blob/master/train.py#L68
     ce_loss = criterion(output.view(-1, NUM_ACTIONS).float(), note_seq[:, 1:].contiguous().view(-1))
+
     mean = mean.float()
     logvar = logvar.float()
-    kl_loss = -0.5 * torch.sum(1 + logvar - mean.pow(2) - logvar.exp()) / batch_size
-    loss = ce_loss + KL_BETA * kl_loss
+    kl = - 0.5 * torch.sum(1 + logvar - mean.pow(2) - logvar.exp()) / batch_size
+    kl_weight = KL_BETA * min(total_step / KL_ANNEAL_STEPS, 1)
+    # Free bits
+    zero = torch.tensor(0.0)
+    
+    if kl.is_cuda:
+        zero = zero.cuda()
 
-    return loss, np.array([ce_loss.data[0], kl_loss.data[0]])
+    kl_loss = kl_weight * torch.max(kl - KL_TOLERANCE, zero)
+    loss = ce_loss + kl_loss
+
+    return loss, np.array([ce_loss.item(), kl.item(), kl_loss.item()])
 
 def main():
     parser = argparse.ArgumentParser(description='Trains model')

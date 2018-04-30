@@ -25,7 +25,7 @@ class DeepJ(nn.Module):
         
         # Generate random latent vector
         z = Variable(torch.randn([batch_size, self.latent_size]))
-        z = z.type(type(x.data))
+        z = z.type(x.type())
 
         if x.is_cuda:
             z = z.cuda()
