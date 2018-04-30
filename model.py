@@ -72,7 +72,7 @@ class DecoderRNN(nn.Module):
         self.decoder = nn.Linear(hidden_size, output_size)
         self.decoder.weight = embd.weight
 
-        self.dropout = nn.Dropout(0.5)
+        # self.dropout = nn.Dropout(0.5)
 
     def forward(self, x, latent=None, hidden=None):
         assert (latent is None and hidden is not None) or (hidden is None and latent is not None)
@@ -84,7 +84,7 @@ class DecoderRNN(nn.Module):
             hidden = latent
 
         # Auto-regressive input dropout to encourage the use of global hidden state.
-        x = self.dropout(x)
+        # x = self.dropout(x)
 
         x, hidden = self.rnn(x, hidden)
         x = self.decoder(x)
