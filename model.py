@@ -7,7 +7,7 @@ from util import *
 import numpy as np
 
 class DeepJ(nn.Module):
-    def __init__(self, input_size=512, encoder_size=512, decoder_size=1024, latent_size=512):
+    def __init__(self, input_size=512, encoder_size=512, decoder_size=512, latent_size=512):
         super().__init__()
         self.input_size = input_size
         self.latent_size = latent_size
@@ -63,7 +63,7 @@ class DecoderRNN(nn.Module):
         super().__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        self.branch_factor = 64
+        self.branch_factor = 128
 
         self.latent_projection = nn.Linear(latent_size, hidden_size * num_layers)
         self.decoder1 = nn.GRU(1, hidden_size, num_layers, batch_first=True)
@@ -72,7 +72,7 @@ class DecoderRNN(nn.Module):
         # Tie output embedding with input embd weights to improve regularization
         # https://arxiv.org/abs/1608.05859 https://arxiv.org/abs/1611.01462
         self.output = nn.Linear(hidden_size, output_size)
-        # self.output.weight = embd.weight
+        self.output.weight = embd.weight
 
         # self.dropout = nn.Dropout(0.5)
 
