@@ -5,6 +5,8 @@ RUN \
   apt-get update && \
   apt-get install -y python3 python3-dev python3-pip python3-tk
 
+RUN echo 'alias python=python3' >> ~/.bashrc
+
 COPY requirements.txt /tmp/
 
 # Install app dependencies
