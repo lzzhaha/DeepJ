@@ -25,7 +25,10 @@ GRADIENT_CLIP = 10
 SCALE_FACTOR = 2 ** 10
 KL_BETA = 0.2
 KL_ANNEAL_STEPS = 100000
-KL_TOLERANCE = 34
+# Bits to exclude from KL loss per dimension.
+FREE_BITS = 128
+LN_2 = 0.69314718056
+KL_TOLERANCE = FREE_BITS * LN_2
 
 # The number of train generator cycles per sequence
 TRAIN_CYCLES = 500
