@@ -23,9 +23,11 @@ def main():
     model.load_state_dict(torch.load(args.model))
     model.eval()
 
+    num_data = len(data) - (len(data) % args.batch_size)
+
     with torch.no_grad():
         with open(os.path.join(const.OUT_DIR, 'latent.tsv'), 'w') as f:
-            for i in tqdm(range(0, len(data) - (len(data) % args.batch_size), args.batch_size)):
+            for i in tqdm(range(0, num_data, args.batch_size)):
                 # Create batch of sequences
                 d = data[i:i + args.batch_size]
 
@@ -47,7 +49,7 @@ def main():
                     f.write('\t'.join(map(str, m)) + '\n')
 
     with open(os.path.join(const.OUT_DIR, 'labels.tsv'), 'w') as f:
-        f.write('\n'.join(map(str, labels)))
+        f.write('\n'.join(map(str, labels[:num_data])))
 
 if __name__ == '__main__':
     main()
