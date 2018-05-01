@@ -25,7 +25,7 @@ def main():
 
     with torch.no_grad():
         with open(os.path.join(const.OUT_DIR, 'latent.tsv'), 'w') as f:
-            for i in tqdm(range(0, len(data), args.batch_size)):
+            for i in tqdm(range(0, len(data) - (len(data) % args.batch_size), args.batch_size)):
                 # Create batch of sequences
                 d = data[i:i + args.batch_size]
 
@@ -34,6 +34,7 @@ def main():
                 ordering = list(np.argsort(lengths))[::-1]
                 sorted_d = [d[i] for i in ordering]
                 d = pad_sequence(sorted_d, batch_first=True).cuda()
+                # d = d[:, :const.SEQ_LEN]
 
                 d = model.embd(d)
                 means, _, _ = model.encoder(d, None)
