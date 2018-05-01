@@ -29,6 +29,7 @@ KL_ANNEAL_STEPS = 100000
 FREE_BITS = 128
 LN_2 = 0.69314718056
 KL_TOLERANCE = FREE_BITS * LN_2
+BATCH_SIZE = 128
 
 # The number of train generator cycles per sequence
 TRAIN_CYCLES = 500
