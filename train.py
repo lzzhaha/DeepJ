@@ -137,7 +137,9 @@ def compute_loss(model, data, total_step, volatile=False):
 
     # Feed it to the model
     if not volatile:
-        note_seq = var(note_seq)
+        note_seq = note_seq.requires_grad_()
+
+    note_seq = note_seq.cuda()
     batch_size = note_seq.size(0)
     output, mean, logvar = model(note_seq, None)
 
@@ -173,16 +175,13 @@ def main():
     args.fp16 = not args.no_fp16
 
     print('=== Loading Model ===')
-    model = DeepJ()
+    model = DeepJ().cuda()
 
-    if torch.cuda.is_available():
-        model.cuda()
-
-        if args.fp16:
-            # Wrap forward method
-            # fwd = model.forward
-            # model.forward = lambda x, states: fwd(x.half(), states)
-            model.half()
+    if args.fp16:
+        # Wrap forward method
+        # fwd = model.forward
+        # model.forward = lambda x, states: fwd(x.half(), states)
+        model.half()
 
     if args.path:
         model.load_state_dict(torch.load(args.path))
