@@ -136,7 +136,8 @@ def compute_loss(model, data, total_step, volatile=False):
     note_seq, styles = data
 
     # Feed it to the model
-    note_seq = var(note_seq, volatile=volatile)
+    if not volatile:
+        note_seq = var(note_seq)
     batch_size = note_seq.size(0)
     output, mean, logvar = model(note_seq, None)
 

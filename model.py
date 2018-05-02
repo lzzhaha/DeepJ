@@ -12,8 +12,8 @@ class DeepJ(nn.Module):
         self.input_size = input_size
         self.latent_size = latent_size
         self.embd = nn.Embedding(NUM_ACTIONS, input_size)
-        self.encoder = EncoderRNN(input_size, encoder_size, latent_size, 3)
-        self.decoder = DecoderRNN(self.embd, input_size, latent_size, decoder_size, NUM_ACTIONS, 3)
+        self.encoder = EncoderRNN(input_size, encoder_size, latent_size, 4)
+        self.decoder = DecoderRNN(self.embd, input_size, latent_size, decoder_size, NUM_ACTIONS, 4)
 
     def forward(self, x, hidden=None):
         batch_size = x.size(0)
