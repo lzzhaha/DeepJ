@@ -26,17 +26,17 @@ SCALE_FACTOR = 2 ** 10
 KL_BETA = 0.2
 KL_ANNEAL_STEPS = 500 * 100
 # Bits to exclude from KL loss per dimension.
-FREE_BITS = 128
+FREE_BITS = 64
 LN_2 = 0.69314718056
 KL_TOLERANCE = FREE_BITS * LN_2
-BATCH_SIZE = 64
+BATCH_SIZE = 128
 
 # The number of train generator cycles per sequence
 TRAIN_CYCLES = 500
 VAL_CYCLES = int(TRAIN_CYCLES * 0.05)
 
 # Style
-STYLES = ['data/baroque', 'data/classical', 'data/romantic', 'data/modern', 'data/jazz', 'data/ragtime']
+STYLES = ['data/baroque', 'data/classical', 'data/romantic', 'data/modern']
 NUM_STYLES = len(STYLES)
 
 # Paths
