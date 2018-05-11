@@ -172,7 +172,7 @@ def main():
     parser.add_argument('--noplot', default=False, action='store_true', help='Do not plot training/loss graphs')
     parser.add_argument('--no-fp16', default=False, action='store_true', help='Disable FP16 training')
     args = parser.parse_args()
-    args.fp16 = not args.no_fp16
+    args.fp16 = args.no_fp16
 
     print('=== Loading Model ===')
     model = DeepJ().cuda()

@@ -25,18 +25,26 @@ def load(styles=STYLES):
         # Parallel process all files into a list of music sequences
         style_seq = []
         seq_len_sum = 0
+        ignore_count = 0
 
         for f in tqdm(get_all_files([style])):
             try:
                 # Pad the sequence by an empty event
                 seq = load_midi(f)
-                if len(seq) >= SEQ_LEN:
+                if len(seq) < SEQ_LEN:
+                    print('Ignoring {} because it is too short {}.'.format(f, len(seq)))
+                    ignore_count += 1
+                elif len(seq) > MAX_SEQ_LEN:
+                    print('Ignoring {} because it is too long {}.'.format(f, len(seq)))
+                    ignore_count += 1
+                else:
                     style_seq.append(torch.from_numpy(seq).long())
                     seq_len_sum += len(seq)
-                else:
-                    print('Ignoring {} because it is too short {}.'.format(f, len(seq)))
+                    
             except Exception as e:
                 print('Unable to load {}'.format(f), e)
+        
+        print('{} files ignored.'.format(ignore_count))
         
         style_seqs.append(style_seq)
         print('Loading {} MIDI file(s) with average event count {}'.format(len(style_seq), seq_len_sum / len(style_seq)))
@@ -86,18 +94,13 @@ def sampler(data):
         raise 'Insufficient training data.'
 
     def sample(seq_len):
+        # seq_len is ignored for the purpose of full sequence training
         # Pick random sequence
         seq_id = random.randint(0, len(seqs) - 1)
         seq = seqs[seq_id]
-        # Pick random start index
-        start_index = random.randint(0, len(seq) - 1 - int(seq_len * 1.5))
-        seq = seq[start_index:]
         # Apply random augmentations
         seq = augment(seq)
-        # Take first N elements. After augmentation seq len changes.
-        seq = itertools.islice(seq, seq_len)
         seq = gen_to_tensor(seq)
-        assert seq.size() == (seq_len,), seq.size()
 
         return (
             seq,
@@ -113,7 +116,7 @@ def batcher(sampler, batch_size, seq_len=SEQ_LEN):
     def batch():
         batch = [sampler(seq_len) for i in range(batch_size)]
         return [torch.stack(x) for x in zip(*batch)]
-    return batch 
+    return batch
 
 def stretch_sequence(sequence, stretch_scale):
     """ Iterate through sequence and stretch each time shift event by a factor """
