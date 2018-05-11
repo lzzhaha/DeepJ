@@ -158,7 +158,7 @@ def transpose(sequence):
         return sequence
 
     # Perform transposition (consider only notes)
-    return (evt + transpose if evt < TIME_OFFSET else evt for evt in sequence)
+    return (evt + transpose if (evt >= NOTE_ON_OFFSET and evt < TIME_OFFSET) else evt for evt in sequence)
 
 def augment(sequence):
     """

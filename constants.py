@@ -37,7 +37,7 @@ TRAIN_CYCLES = 500
 VAL_CYCLES = int(TRAIN_CYCLES * 0.05)
 
 # Style
-STYLES = ['data/baroque']#, 'data/classical', 'data/romantic', 'data/modern']
+STYLES = ['data/baroque', 'data/classical', 'data/romantic', 'data/modern']
 NUM_STYLES = len(STYLES)
 
 # Paths
