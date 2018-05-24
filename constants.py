@@ -21,7 +21,7 @@ NUM_ACTIONS = VEL_OFFSET + VEL_QUANTIZATION
 
 # Trainin Parameters
 SEQ_LEN = 512 + 1
-MAX_SEQ_LEN = 30000
+MAX_SEQ_LEN = 16384
 GRADIENT_CLIP = 10
 SCALE_FACTOR = 2 ** 10
 KL_BETA = 0.2
@@ -30,7 +30,7 @@ KL_ANNEAL_STEPS = 500 * 100
 FREE_BITS = 64
 LN_2 = 0.69314718056
 KL_TOLERANCE = FREE_BITS * LN_2
-BATCH_SIZE = 1
+BATCH_SIZE = 8
 
 # The number of train generator cycles per sequence
 TRAIN_CYCLES = 500
@@ -38,7 +38,7 @@ VAL_CYCLES = int(TRAIN_CYCLES * 0.05)
 
 # Style
 #STYLES = ['data/baroque', 'data/classical', 'data/romantic', 'data/modern']
-STYLES = ['data/romantic']
+STYLES = ['data/jazz']
 NUM_STYLES = len(STYLES)
 
 # Paths
