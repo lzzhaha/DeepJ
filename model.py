@@ -21,16 +21,23 @@ class DeepJ(nn.Module):
         x = self.embd(x)
         # Encoder output is the latent vector
         mean, logvar, _ = self.encoder(x, hidden)
+
+        # Preven NAN during exponentiation
+        mean = mean.float()
+        logvar = logvar.float()
         std = torch.exp(0.5 * logvar)
         
         # Generate random latent vector
-        z = Variable(torch.randn([batch_size, self.latent_size]))
+        z = torch.randn([batch_size, self.latent_size]).requires_grad_()
         z = z.type(x.type())
 
         if x.is_cuda:
             z = z.cuda()
 
         z = z * std + mean
+
+        # Convert back to float
+        z = z.type(x.type())
 
         decoder_output, _ = self.decoder(x[:, :-1], z)
         return decoder_output, mean, logvar

@@ -38,6 +38,7 @@ def load(styles=STYLES):
                     print('Ignoring {} because it is too long {}.'.format(f, len(seq)))
                     ignore_count += 1
                 else:
+                    seq = np.concatenate([[EOS], seq, [EOS]])
                     style_seq.append(torch.from_numpy(seq).long())
                     seq_len_sum += len(seq)
                     
@@ -160,7 +161,7 @@ def transpose(sequence):
         return sequence
 
     # Perform transposition (consider only notes)
-    return (evt + transpose if evt < TIME_OFFSET else evt for evt in sequence)
+    return (evt + transpose if (evt >= NOTE_ON_OFFSET and evt < TIME_OFFSET) else evt for evt in sequence)
 
 def augment(sequence):
     """
