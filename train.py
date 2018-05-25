@@ -31,7 +31,7 @@ def plot_graph(training_loss, validation_loss, name):
     plt.plot(validation_loss)
     plt.savefig(OUT_DIR + '/' + name)
 
-def train(args, model, train_batcher, train_len, val_batcher, val_len, optimizer, plot=True):
+def train(args, model, train_loader, val_loader, optimizer, plot=True):
     """
     Trains a model on multiple seq batches by iterating through a generator.
     """
@@ -49,11 +49,10 @@ def train(args, model, train_batcher, train_len, val_batcher, val_len, optimizer
         step = 1
         total_metrics = 0
 
-        with tqdm(range(train_len)) as t:
+        with tqdm(train_loader) as t:
             t.set_description('Epoch {}'.format(epoch))
             
-            for _ in t:
-                data = train_batcher()
+            for data in train_loader:
                 metrics = train_step(model, data, optimizer, total_step)
 
                 total_metrics += metrics
@@ -69,11 +68,10 @@ def train(args, model, train_batcher, train_len, val_batcher, val_len, optimizer
         step = 1
         total_metrics = 0
 
-        with tqdm(range(val_len)) as t:
+        with tqdm(val_loader) as t:
             t.set_description('Validation {}'.format(epoch))
 
-            for _ in t:
-                data = val_batcher()
+            for data  in t:
                 metrics = val_step(model, data, total_step)
                 total_metrics += metrics
                 avg_metrics = total_metrics / step
@@ -99,7 +97,7 @@ def train_step(model, data, optimizer, total_step):
     """
     model.train()
 
-    loss, metrics = compute_loss(model, data, total_step)
+    loss, metrics = compute_metrics(model, data, total_step)
     
     # Scale the loss
     loss = loss * SCALE_FACTOR
@@ -126,28 +124,28 @@ def train_step(model, data, optimizer, total_step):
 
 def val_step(model, data, total_step):
     model.eval()
-    return compute_loss(model, data, total_step, volatile=True)[1]
+    return compute_metrics(model, data, total_step, volatile=True)[1]
 
-def compute_loss(model, data, total_step, volatile=False):
+def compute_metrics(model, data, total_step, volatile=False):
     """
     Trains the model on a single batch of sequence.
     """
     # Convert all tensors into variables
-    note_seq, styles = data
+    seqs = data
 
     # Feed it to the model
     if not volatile:
-        note_seq = note_seq.requires_grad_()
+        seqs = seqs.data.requires_grad_()
 
-    note_seq = note_seq.cuda()
-    batch_size = note_seq.size(0)
-    output, mean, logvar = model(note_seq, None)
+    seqs = seqs.cuda()
+    batch_size = seqs.size(0)
+    output, mean, logvar = model(seqs, None)
 
     # Compute the loss.
     # Note that we need to convert this back into a float because it is a large summation.
     # Otherwise, it will result in 0 gradient.
     # https://github.com/timbmg/Sentence-VAE/blob/master/train.py#L68
-    ce_loss = criterion(output.view(-1, NUM_ACTIONS).float(), note_seq[:, 1:].contiguous().view(-1))
+    ce_loss = criterion(output.view(-1, NUM_ACTIONS).float(), seqs.data)
 
     mean = mean.float()
     logvar = logvar.float()
@@ -206,22 +204,15 @@ def main():
     print('=== Dataset ===')
     os.makedirs(OUT_DIR, exist_ok=True)
     print('Loading data...')
-    data = process(load())
+    train_loader, val_loader = get_tv_loaders()
     print()
-    print('Creating data generators...')
-    train_data, val_data = validation_split(data)
-    train_batcher = batcher(sampler(train_data), args.batch_size)
-    val_batcher = batcher(sampler(val_data), args.batch_size)
-
+    
     # Checks if training data sounds right.
     # for i, seq in enumerate(train_batcher()[0]):
     #     save_midi('train_seq_{}'.format(i), seq.cpu().numpy())
 
-    print('Training Sequences:', len(train_data[0]), 'Validation Sequences:', len(val_data[0]))
-    print()
-
     print('=== Training ===')
-    train(args, model, train_batcher, TRAIN_CYCLES, val_batcher, VAL_CYCLES, optimizer, plot=not args.noplot)
+    train(args, model, train_loader, val_loader, optimizer, plot=not args.noplot)
 
 if __name__ == '__main__':
     main()

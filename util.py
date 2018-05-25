@@ -80,12 +80,6 @@ def autocorrelate(signal, lag=1):
     c0 = np.var(signal) + 1e-5
     return (x[lag:] * x[:n - lag]).sum() / float(n) / c0
 
-
-def gen_to_tensor(generator):
-    """ Converts a generator into a Torch LongTensor """
-    return torch.LongTensor(list(generator))
-
-
 def convert_time_evt_to_sec(evt):
     """
     Convert time shift event to seconds
