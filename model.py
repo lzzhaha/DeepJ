@@ -5,6 +5,7 @@ from torch.autograd import Variable
 from constants import *
 from util import *
 import numpy as np
+from torch.nn.utils.rnn import pack_padded_sequence
 
 class DeepJ(nn.Module):
     def __init__(self, input_size=256, encoder_size=256, decoder_size=256, latent_size=256):
@@ -15,16 +16,13 @@ class DeepJ(nn.Module):
         self.encoder = EncoderRNN(input_size, encoder_size, latent_size, 3)
         self.decoder = DecoderRNN(self.embd, input_size, latent_size, decoder_size, NUM_ACTIONS, 3)
 
-    def forward(self, x, hidden=None):
+    def forward(self, x, lengths, hidden=None):
         batch_size = x.size(0)
         # Project to dense representation
         x = self.embd(x)
         # Encoder output is the latent vector
-        mean, logvar, _ = self.encoder(x, hidden)
-
-        # Preven NAN during exponentiation
-        mean = mean.float()
-        logvar = logvar.float()
+        x_in = pack_padded_sequence(x, lengths, batch_first=True)
+        mean, logvar, _ = self.encoder(x_in, hidden)
         std = torch.exp(0.5 * logvar)
         
         # Generate random latent vector
@@ -39,9 +37,8 @@ class DeepJ(nn.Module):
         # Convert back to float
         z = z.type(x.type())
 
-        decoder_output, _ = self.decoder(x[:, :-1], z)
+        decoder_output, _ = self.decoder(x_in, z)
         return decoder_output, mean, logvar
-
 
 class EncoderRNN(nn.Module):
     def __init__(self, input_size, hidden_size, latent_size, num_layers):
@@ -63,7 +60,6 @@ class EncoderRNN(nn.Module):
         x = self.latent_projection(x)
 
         return x[:, :self.latent_size], x[:, self.latent_size:], hidden
-
 
 class DecoderRNN(nn.Module):
     def __init__(self, embd, input_size, latent_size, hidden_size, output_size, num_layers):
@@ -89,5 +85,6 @@ class DecoderRNN(nn.Module):
             hidden = latent
 
         x, hidden = self.rnn(x, hidden)
+        x = x.data
         x = self.decoder(x)
         return x, hidden

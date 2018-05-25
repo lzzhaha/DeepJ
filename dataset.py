@@ -122,13 +122,8 @@ def collate_fn(data):
     seqs = data
     seqs.sort(key=lambda x: len(x), reverse=True)
     lengths = [len(x) for x in seqs]
-
-    seqs = pack_padded_sequence(
-        pad_sequence(seqs, batch_first=True, padding_value=const.EOS),
-        lengths,
-        batch_first=True
-    )
-    return seqs
+    seqs = pad_sequence(seqs, batch_first=True, padding_value=const.EOS)
+    return seqs, lengths
 
 def get_tv_loaders():
     data_files = get_all_files(const.STYLES)

@@ -52,7 +52,7 @@ def train(args, model, train_loader, val_loader, optimizer, plot=True):
         with tqdm(train_loader) as t:
             t.set_description('Epoch {}'.format(epoch))
             
-            for data in train_loader:
+            for data in t:
                 metrics = train_step(model, data, optimizer, total_step)
 
                 total_metrics += metrics
@@ -131,21 +131,22 @@ def compute_metrics(model, data, total_step, volatile=False):
     Trains the model on a single batch of sequence.
     """
     # Convert all tensors into variables
-    seqs = data
+    seqs, lengths = data
 
     # Feed it to the model
     if not volatile:
-        seqs = seqs.data.requires_grad_()
+        seqs = seqs.requires_grad_()
 
     seqs = seqs.cuda()
     batch_size = seqs.size(0)
-    output, mean, logvar = model(seqs, None)
+    outputs, mean, logvar = model(seqs, lengths)
+    targets = pack_padded_sequence(seqs, lengths, batch_first=True)
 
     # Compute the loss.
     # Note that we need to convert this back into a float because it is a large summation.
     # Otherwise, it will result in 0 gradient.
     # https://github.com/timbmg/Sentence-VAE/blob/master/train.py#L68
-    ce_loss = criterion(output.view(-1, NUM_ACTIONS).float(), seqs.data)
+    ce_loss = criterion(outputs.float(), targets.data)
 
     mean = mean.float()
     logvar = logvar.float()
