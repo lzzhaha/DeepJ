@@ -14,7 +14,6 @@ from tqdm import tqdm
 import multiprocessing
 import itertools
 
-from constants import *
 from midi_io import load_midi
 from util import *
 import constants as const
@@ -32,10 +31,10 @@ class MusicDataset(Dataset):
             try:
                 # Pad the sequence by an empty event
                 seq = load_midi(f)
-                if len(seq) < SEQ_LEN:
+                if len(seq) < const.MIN_SEQ_LEN:
                     raise Exception('Ignoring {} because it is too short {}.'.format(f, len(seq)))
-                # elif len(seq) > MAX_SEQ_LEN:
-                #     raise Exception('Ignoring {} because it is too long {}.'.format(f, len(seq)))
+                elif len(seq) > const.MAX_SEQ_LEN:
+                    raise Exception('Ignoring {} because it is too long {}.'.format(f, len(seq)))
                 else:
                     seq = np.concatenate([[EOS], seq, [EOS]])
                     self.seqs.append(torch.from_numpy(seq).long())                    
@@ -90,11 +89,6 @@ def stretch_sequence(sequence, stretch_scale):
         for x in seconds_to_events(time_sum * stretch_scale):
             seq_len += 1
             yield x
-
-    # Pad sequence with empty events if seq len not enough
-    if seq_len < SEQ_LEN:
-        for x in range(SEQ_LEN - seq_len):
-            yield TIME_OFFSET
             
 def transpose(sequence, amount=4):
     """ A generator that represents the sequence. """

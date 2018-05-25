@@ -8,7 +8,7 @@ import numpy as np
 from torch.nn.utils.rnn import pack_padded_sequence
 
 class DeepJ(nn.Module):
-    def __init__(self, input_size=256, encoder_size=256, decoder_size=256, latent_size=256):
+    def __init__(self, input_size=128, encoder_size=128, decoder_size=128, latent_size=128):
         super().__init__()
         self.input_size = input_size
         self.latent_size = latent_size
