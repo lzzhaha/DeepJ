@@ -24,8 +24,6 @@ class MusicGenerator():
     def generate(self, encode_seq=None, temperature=0, latent=None, show_progress=True, limit=10000):
         self.model.eval()
 
-        seq = []
-        
         if encode_seq is not None:
             # Use latent vector produced by encoder
             x = encode_seq.unsqueeze(0)
@@ -42,6 +40,7 @@ class MusicGenerator():
         memory = None
         # Generate starting first token. Input for decoder.
         x = torch.LongTensor([[EOS]])
+        seq = [EOS]
         
         for _ in range(limit):
             logits, memory = self.model.decoder(self.model.embd(x), latent=z, hidden=memory)
@@ -60,15 +59,7 @@ class MusicGenerator():
 
             if token == const.EOS:
                 break
-
         return np.array(seq)
-
-    def export(self, name='output', seq_len=1000, show_progress=True):
-        """
-        Export into a MIDI file.
-        """
-        seq = self.generate(seq_len, show_progress=show_progress)
-
 
 def main():
     parser = argparse.ArgumentParser(description='Generates music.')

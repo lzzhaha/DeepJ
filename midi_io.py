@@ -135,6 +135,9 @@ def load_midi(fname):
         # Perform caching
         os.makedirs(os.path.dirname(cache_path), exist_ok=True)
         np.save(cache_path, seq)
+
+    # Append EOS
+    seq = np.concatenate([[EOS], seq, [EOS]])
     return seq
 
 def save_midi(fname, event_seq):

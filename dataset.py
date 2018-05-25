@@ -36,7 +36,6 @@ class MusicDataset(Dataset):
                 elif len(seq) > const.MAX_SEQ_LEN:
                     raise Exception('Ignoring {} because it is too long {}.'.format(f, len(seq)))
                 else:
-                    seq = np.concatenate([[EOS], seq, [EOS]])
                     self.seqs.append(torch.from_numpy(seq).long())                    
             except Exception as e:
                 print('Unable to load {}'.format(f), e)
