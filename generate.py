@@ -21,9 +21,8 @@ class MusicGenerator():
     def __init__(self, model):
         self.model = model
 
-    def generate(self, seq_len, encode_seq=None, temperature=0, latent=None, show_progress=True):
+    def generate(self, encode_seq=None, temperature=0, latent=None, show_progress=True, limit=10000):
         self.model.eval()
-        r = trange(seq_len) if show_progress else range(seq_len)
 
         seq = []
         
@@ -39,11 +38,12 @@ class MusicGenerator():
         if latent is not None:
             # Use provided custom latent vector
             z = latent.unsqueeze(0)
+        
         memory = None
         # Generate starting first token. Input for decoder.
         x = torch.LongTensor([[EOS]])
         
-        for _ in r:
+        for _ in range(limit):
             logits, memory = self.model.decoder(self.model.embd(x), latent=z, hidden=memory)
             # Remove latent vector
             z = None
@@ -54,7 +54,12 @@ class MusicGenerator():
             else:
                 probs = F.softmax(logits / temperature, dim=2)
                 x = probs.squeeze(0).multinomial(1)
-            seq.append(x.squeeze(0).data.numpy()[0])
+            
+            token = x.squeeze(0).data.numpy()[0]
+            seq.append(token)
+
+            if token == const.EOS:
+                break
 
         return np.array(seq)
 
@@ -69,7 +74,6 @@ def main():
     parser = argparse.ArgumentParser(description='Generates music.')
     parser.add_argument('model', help='Path to model file')
     parser.add_argument('--fname', default='sample', help='Name of the output file')
-    parser.add_argument('--length', default=SEQ_LEN, type=int, help='Length of generation')
     parser.add_argument('--synth', default=False, action='store_true', help='Synthesize output in MP3')
     parser.add_argument('--encode', default=None, type=str, help='Forces the latent vector to encode a sequence')
     parser.add_argument('--temperature', default=0, type=float, help='Temperature of generation. 0 temperature = deterministic')
@@ -107,7 +111,7 @@ def main():
     fname = args.fname
     print('File: {}'.format(fname))
     generator = MusicGenerator(model)
-    seq = generator.generate(args.length, encode_seq, args.temperature, latent)
+    seq = generator.generate(encode_seq, args.temperature, latent)
     save_midi(fname, seq)
 
     if args.synth:
