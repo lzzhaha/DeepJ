@@ -114,7 +114,7 @@ def collate_fn(data):
     # Sort a data list by sequence length (descending order).
     seqs = data
     seqs.sort(key=lambda x: len(x), reverse=True)
-    lengths = [len(x) for x in seqs]
+    lengths = np.array([len(x) for x in seqs])
     seqs = pad_sequence(seqs, batch_first=True, padding_value=const.EOS)
     return seqs, lengths
 

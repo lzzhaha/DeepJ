@@ -26,18 +26,11 @@ class DeepJ(nn.Module):
         std = torch.exp(0.5 * logvar)
         
         # Generate random latent vector
-        z = torch.randn([batch_size, self.latent_size]).requires_grad_()
-        z = z.type(x.type())
-
-        if x.is_cuda:
-            z = z.cuda()
-
+        z = torch.randn([batch_size, self.latent_size], dtype=x.dtype, device=x.device).requires_grad_()
         z = z * std + mean
 
-        # Convert back to float
-        z = z.type(x.type())
-
-        decoder_output, _ = self.decoder(x_in, z)
+        dec_in = pack_padded_sequence(x[:, :-1], lengths - 1, batch_first=True)
+        decoder_output, _ = self.decoder(dec_in, z)
         return decoder_output, mean, logvar
 
 class EncoderRNN(nn.Module):

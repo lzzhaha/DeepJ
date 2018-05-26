@@ -140,7 +140,7 @@ def compute_metrics(model, data, total_step, volatile=False):
     seqs = seqs.cuda()
     batch_size = seqs.size(0)
     outputs, mean, logvar = model(seqs, lengths)
-    targets = pack_padded_sequence(seqs, lengths, batch_first=True)
+    targets = pack_padded_sequence(seqs[:, 1:], lengths - 1, batch_first=True)
 
     # Compute the loss.
     # Note that we need to convert this back into a float because it is a large summation.
