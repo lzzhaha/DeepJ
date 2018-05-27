@@ -8,13 +8,13 @@ import numpy as np
 from torch.nn.utils.rnn import pack_padded_sequence
 
 class DeepJ(nn.Module):
-    def __init__(self, input_size=128, encoder_size=128, decoder_size=128, latent_size=128):
+    def __init__(self, input_size=256, encoder_size=256, decoder_size=256, latent_size=256):
         super().__init__()
         self.input_size = input_size
         self.latent_size = latent_size
         self.embd = nn.Embedding(NUM_ACTIONS, input_size)
-        self.encoder = EncoderRNN(input_size, encoder_size, latent_size, 3)
-        self.decoder = DecoderRNN(self.embd, input_size, latent_size, decoder_size, NUM_ACTIONS, 3)
+        self.encoder = EncoderRNN(input_size, encoder_size, latent_size, 4)
+        self.decoder = DecoderRNN(self.embd, input_size, latent_size, decoder_size, NUM_ACTIONS, 4)
 
     def forward(self, x, lengths, hidden=None):
         batch_size = x.size(0)
