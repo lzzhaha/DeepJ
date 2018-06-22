@@ -9,20 +9,13 @@ def main():
     args = parser.parse_args()
 
     model = DeepJ()
-    model.load_state_dict(torch.load(args.model))
+    # model.load_state_dict(torch.load(args.model))
 
-    dummy_input = (
-        # Event
-        torch.zeros((1, 1, const.NUM_ACTIONS)),
-        # Style
-        torch.zeros((1, const.NUM_STYLES)),
-        # Memory states
-        (torch.zeros((2, 1, model.num_units)),) + 
-        tuple(
-            (torch.tensor(0), tuple(torch.zeros((1, 1, model.num_units)) for _ in range(model.rnns[l + 1].dilation)))
-            for l in range(model.num_layers - 1)
-        )
-    )
+    evt_input = torch.zeros((1, 1, const.NUM_ACTIONS))
+    style_input = torch.zeros((1, const.NUM_STYLES))
+    _, states = model.generate(evt_input, style_input, None)
+    
+    dummy_input = (evt_input, style_input, states)
     torch.onnx.export(model, dummy_input, args.model.replace('.pt', '.onnx'))
 
 if __name__ == '__main__':
