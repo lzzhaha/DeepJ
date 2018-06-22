@@ -113,7 +113,7 @@ def train_step(model, data, optimizer):
 
     # `clip_grad_norm` helps prevent the exploding gradient problem in RNNs / LSTMs.
     # Reference: https://github.com/pytorch/examples/blob/master/word_language_model/main.py
-    torch.nn.utils.clip_grad_norm_(model.parameters(), GRADIENT_CLIP)
+    # torch.nn.utils.clip_grad_norm_(model.parameters(), GRADIENT_CLIP)
     optimizer.step()
 
     # Copy the parameters back into the model
@@ -149,6 +149,7 @@ def main():
     parser.add_argument('--path', help='Load existing model?')
     parser.add_argument('--batch-size', default=128, type=int, help='Size of the batch')
     parser.add_argument('--lr', default=1e-3, type=float, help='Learning rate')
+    parser.add_argument('--train_its', default=1000, type=int, help='Number of training iterations per epoch')
     parser.add_argument('--noplot', default=False, action='store_true', help='Do not plot training/loss graphs')
     parser.add_argument('--no-fp16', default=False, action='store_true', help='Disable FP16 training')
     args = parser.parse_args()
@@ -201,7 +202,7 @@ def main():
     print()
 
     print('=== Training ===')
-    train(args, model, train_batcher, TRAIN_CYCLES, val_batcher, VAL_CYCLES, optimizer, plot=not args.noplot)
+    train(args, model, train_batcher, args.train_its, val_batcher, int(args.train_its * 0.05), optimizer, plot=not args.noplot)
 
 if __name__ == '__main__':
     main()

@@ -17,46 +17,42 @@ class DeepJ(nn.Module):
         self.style_units = style_units
 
         # RNN
-        self.rnns = [
-            nn.GRU(NUM_ACTIONS + style_units, num_units, 2, batch_first=True) if i == 0 else 
-            DilatedRNN(nn.GRU(num_units, num_units, batch_first=True), 2 ** i)
-            for i in range(num_layers)
-        ]
+        self.rnn = nn.GRU(NUM_ACTIONS + style_units, num_units, num_layers=4)
 
         self.output_linear = nn.Linear(self.num_units, NUM_ACTIONS)
 
-        for i, rnn in enumerate(self.rnns):
-            self.add_module('rnn_' + str(i), rnn)
-
         # Style
         self.style_linear = nn.Linear(NUM_STYLES, self.style_units)
-        # self.style_layer = nn.Linear(self.style_units, self.num_units * self.num_layers)
 
     def forward(self, x, style, states=None):
         batch_size = x.size(0)
         seq_len = x.size(1)
-
+        
         # Distributed style representation
         style = self.style_linear(style)
-        # style = F.tanh(self.style_layer(style))
         style = style.unsqueeze(1).expand(batch_size, seq_len, self.style_units)
         x = torch.cat((x, style), dim=2)
 
         ## Process RNN ##
-        if states is None:
-            states = tuple(None for _ in range(self.num_layers))
+        # if states is None:
+        #     states = tuple(None for _ in range(self.num_layers))
 
-        new_states = []
-        for l, rnn in enumerate(self.rnns):
-            prev_x = x
-            x, s = rnn(x, states[l])
-            new_states.append(s)
+        # new_states = []
+        # for l, rnn in enumerate(self.rnns):
+        #     prev_x = x
+        #     x, s = rnn(x, states[l])
+        #     new_states.append(s)
 
-            if l > 0:
-                x = prev_x + x
+        #     if l > 0:
+        #         x = prev_x + x
+
+        # Swap batch and time dimension
+        x = x.permute(1, 0, 2)
+        x, states = self.rnn(x, states)
+        x = x.permute(1, 0, 2)
 
         x = self.output_linear(x)
-        return x, tuple(new_states)
+        return x, states
 
     def generate(self, x, style, states, temperature=1):
         """ Returns the probability of outputs """
@@ -93,7 +89,7 @@ class DilatedRNN(nn.Module):
             # Single step requires us to store which step we are on.
             if states is None:
                 # Each memory tensor corresponds to a dilation.
-                states = (0, tuple(None for _ in range(self.dilation)))
+                states = (torch.tensor(0), tuple(None for _ in range(self.dilation)))
             step, memories = states
             memory_id = step % self.dilation
             x, memory = self.rnn(x, memories[memory_id])

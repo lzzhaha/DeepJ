@@ -9,7 +9,7 @@ def main():
     args = parser.parse_args()
 
     model = DeepJ()
-    # model.load_state_dict(torch.load(args.model))
+    model.load_state_dict(torch.load(args.model))
 
     evt_input = torch.zeros((1, 1, const.NUM_ACTIONS))
     style_input = torch.zeros((1, const.NUM_STYLES))
