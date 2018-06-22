@@ -44,17 +44,19 @@ class DeepJ(nn.Module):
 
         ## Process RNN ##
         if states is None:
-            states = [None for _ in range(self.num_layers)]
+            states = tuple(None for _ in range(self.num_layers))
 
+        new_states = []
         for l, rnn in enumerate(self.rnns):
             prev_x = x
-            x, states[l] = rnn(x, states[l])
+            x, s = rnn(x, states[l])
+            new_states.append(s)
 
             if l > 0:
                 x = prev_x + x
 
         x = self.output_linear(x)
-        return x, states
+        return x, tuple(new_states)
 
     def generate(self, x, style, states, temperature=1):
         """ Returns the probability of outputs """
