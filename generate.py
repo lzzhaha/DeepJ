@@ -60,7 +60,7 @@ class Generation():
 
             for _ in range(self.beam_size):
                 # Sample action
-                output = probs.multinomial().data
+                output = probs.multinomial(num_samples=1).data
                 event = output[0, 0]
                 
                 # Create next beam
