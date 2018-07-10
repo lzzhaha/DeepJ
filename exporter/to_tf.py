@@ -10,6 +10,7 @@ def main():
     onnx_model_path = args.model
     print('Importing ONNX model')
     onnx_model = onnx.load(onnx_model_path)
+    print('Preparing TF model')
     tf_rep = prepare(onnx_model)
     print(tf_rep)
 

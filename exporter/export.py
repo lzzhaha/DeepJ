@@ -2,7 +2,8 @@
 Exports to ONNX model format
 """
 import argparse
-import torch, torch.onnx
+import torch#, torch.onnx
+from webdnn.frontend.pytorch import PyTorchConverter
 import constants as const
 from model import DeepJ
 
@@ -22,8 +23,12 @@ def main():
     _, states = model.generate(evt_input, style_input, None)
     
     dummy_input = (evt_input, style_input, states)
-    torch.onnx.export(model, dummy_input, onnx_model_path)
-    print('Exported to ONNX format')
+
+    print('Generating graph')
+    graph = PyTorchConverter().convert(model, dummy_input)
+    # print(graph)
+    # torch.onnx.export(model, dummy_input, onnx_model_path)
+    # print('Exported to ONNX format')
 
 if __name__ == '__main__':
     main()
