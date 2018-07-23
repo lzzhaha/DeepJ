@@ -10,7 +10,8 @@ class DeepJ(nn.Module):
     """
     The DeepJ neural network model architecture.
     """
-    def __init__(self, num_units=512, num_layers=4, style_units=32):
+    #default: num_units=512, num_layers=4, style_units=32
+    def __init__(self, num_units=64, num_layers=2, style_units=8):
         super().__init__()
         self.num_units = num_units
         self.num_layers = num_layers
