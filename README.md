@@ -11,11 +11,12 @@ Recent advances in deep neural networks have enabled algorithms to compose music
 - Python 3.5 (Not 3.6!!!!!)
 - Pytorch 4.0 (http://download.pytorch.org/whl/cu80/torch-0.4.0-cp35-cp35m-linux_x86_64.whl)
 - Cuda 9.1 (8.0 for Colab)
-- python3-midi
+- python3-midi (Check DeepJ_Main notebook for installation)
 
 
 ```
+Run following in DeepJ directory
 pip install -r requirements.txt
 ```
 
-The dataset is not provided in this repository. To train a custom model, you will need to include a MIDI dataset in the `data/` folder.
+The dataset is not provided in this repository. To train a custom model, you will need to include a MIDI dataset in the `data/` folder in following ways: data/classical, data/romantic, and each such folder contains midi file of corresponding .mid files.
